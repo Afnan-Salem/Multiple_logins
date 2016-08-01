@@ -40,8 +40,6 @@ class AuthController extends Controller
 
     /**
      * Create a new authentication controller instance.
-     *
-     * @return void
      */
     public function __construct()
     {
@@ -50,9 +48,8 @@ class AuthController extends Controller
 
     /**
      * Get a validator for an incoming registration request.
-     *
-     * @param  array  $data
-     * @return \Illuminate\Contracts\Validation\Validator
+     * @param Request $request
+     * @return \Illuminate\Http\RedirectResponse|\Illuminate\Routing\Redirector
      */
     public function validateForm(Request $request)
     {
@@ -75,8 +72,7 @@ class AuthController extends Controller
      */
     protected function create(array $data)
     {
-       // $verification_code=str_random(20);
-        return $user= User::create([
+        return User::create([
             'fname' => $data['fname'],
             'surname' => $data['surname'],
             'email' => $data['email'],
@@ -128,7 +124,6 @@ class AuthController extends Controller
                     //manually login to make user authenticated when redirecting home
                     Auth::login($user, true);
                     return view('home',['roles'=>$user->get_userRoles($user_id)]);
-                    break;
                 }
             }
         }
