@@ -26,3 +26,4 @@ If input fields didn't match the database fields of user A ... a "credentials do
 
 8- try registering user A as orchestra/musician
 
+

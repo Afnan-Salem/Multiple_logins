@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Auth;
 use App\Orchestra;
 use App\Role;
 use App\User;
-use phpDocumentor\Reflection\DocBlock\Tags\Return_;
 use Symfony\Component\HttpFoundation\Request;
 use Validator;
 use Illuminate\Support\Facades\Hash;
@@ -90,55 +89,94 @@ class AuthController extends Controller
 
     protected function check($request)
     {
-        $newRole_name=$request->role;   //requested role
-        $email=$request->email;
         $user  = new User();
         $role = new Role();
         $user = $user->verify_mail($request->email);
-        $role_id = $role->search_role($newRole_name);
+        $role_id = $role->search_role($request->role);
         /*
          * user already exist in the system.
-         * get user's roles
-         * assign new role if not found
-         * else redirect to login page
+         * assign new role
+         * else register new user
          */
         if ($user!=null) {
-            $user_id=$user->id;
-            $user_roles=$user->get_userRoles($user_id);
-            foreach($user_roles as $role) {
-                if($role->name == $newRole_name) {
-                    $request->session()->flash('alert-danger', 'User '.$email.' Is Already '.$newRole_name.' Login! ');
-                    return redirect('/login');
-                }
-                else if($user->fname!=$request->fname || $user->surname!=$request->surname ||
-                    $user->gender!=$request->gender || Hash::check($request->password, $user->password)==0) {
-                    $request->session()->flash('alert-danger','Credentials do not match for user '.$request->email.'');
-                    return redirect()->back();
-                }
-                else {
-                    if($newRole_name == 'orchestra') {
-                        $orchestra = new Orchestra();
-                        $orchestra -> create_record($user_id,Input::get('orchestra'));
-                    }
-                    $user->assign($user_id,$role_id);
-                    //manually login to make user authenticated when redirecting home
-                    Auth::login($user, true);
-                    return view('home',['roles'=>$user->get_userRoles($user_id)]);
-                }
+            return $this->assign_newRole($request,$user,$role_id);
+        }
+       else {
+            return $this->register_newUserRole($request,$role_id);
+        }
+    }
+
+    /**
+     * @param $request
+     * @param $user
+     * @param $role_id
+     * get user roles , assign the new role if not existed
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\Http\RedirectResponse|\Illuminate\Routing\Redirector|\Illuminate\View\View
+     */
+    protected function assign_newRole($request,$user,$role_id)
+    {
+        $newRole_name = $request->role;
+        $user_id = $user->id;
+        $user_roles = $user->get_userRoles($user_id);
+        $boolean = $this->match_fields($request,$user);   //'true'..form inputs matches user's stored fields
+        foreach($user_roles as $role) {
+            if ($role->name == $newRole_name) {
+                $request->session()->flash('alert-danger', 'User ' . $request->email . ' Is Already ' . $newRole_name . ' Login! ');
+                return redirect('/login');
             }
         }
-        // register new user
-       else {
-            $user=$this->create(Input::all());
-            $user_id = $user->id;
+        if($boolean=='false') {
+            $request->session()->flash('alert-danger','Credentials do not match for user '.$request->email.'');
+            return redirect()->back();
+        }
+        else {
             if($newRole_name == 'orchestra') {
-                $orchestra = new Orchestra();
-                $orchestra -> create_record($user_id,Input::get('orchestra'));
+                $this->create_officer($user_id);
             }
             $user->assign($user_id,$role_id);
-            $this->send_verification(Input::all());
-            $request->session()->flash('alert-success', 'A Confirmation Mail Has Sent To Your Email, Please Verify!');
-            return redirect('/login');
+            Auth::login($user, true);   //manually login to make user authenticated when redirecting home
+            return view('home',['roles'=>$user->get_userRoles($user_id)]);
+        }
+    }
+
+    /**
+     * @param $request
+     * @param $role_id
+     * @return \Illuminate\Http\RedirectResponse|\Illuminate\Routing\Redirector
+     */
+    protected function register_newUserRole($request,$role_id)
+    {
+        $user=$this->create(Input::all());
+        $user_id = $user->id;
+        if($request->role == 'orchestra') {
+            $this->create_officer($user_id);
+        }
+        $user->assign($user_id,$role_id);
+        $this->send_verification(Input::all());
+        $request->session()->flash('alert-success', 'A Confirmation Mail Has Sent To Your Email, Please Verify!');
+        return redirect('/login');
+    }
+
+    /**
+     * @param $user_id
+     */
+    protected function create_officer($user_id)
+    {
+        $orchestra = new Orchestra();
+        $orchestra -> create_record($user_id,Input::get('orchestra'));
+    }
+
+    /**
+     * compare input fields with database attributes
+     * @param $request
+     * @param $user
+     * @return string
+     */
+    protected function match_fields($request,$user)
+    {
+        if($user->fname!=$request->fname || $user->surname!=$request->surname ||
+            $user->gender!=$request->gender || Hash::check($request->password, $user->password)==0) {
+            return 'false';
         }
     }
 
