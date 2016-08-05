@@ -2,9 +2,28 @@
 
 1- Run php artisan migrate in the terminal or use database users.sql
 
-2- Update .env field for other database/email connections
+2- Update .env field for other database/email connections.
 
-3- Database must have roles inserted in roles table
+3- Run php artisan migrate, php artisan  db:seed
+
+
+4- when updating/ installing composer some files may be overwritten, check the following:
+
+    #...\vendor\laravel\framework\src\Illuminate\Foundation\Auth\ResetsPasswords.php
+          protected function resetEmailBuilder()
+             {
+                 return function (Message $message) {
+                     $message->subject($this->getEmailSubject());
+                     $message->from('yourmail@email.com', 'title');
+                 };
+             }
+
+    #...\vendor\laravel\framework\src\Illuminate\Auth\Events\Logout.php
+           public function __construct($user)
+              {
+                  $this->user = $user;
+                  session()->forget('curr_role');
+              }
 
 # Test Scenarios
 
@@ -25,5 +44,27 @@ If input fields didn't match the database fields of user A ... a "credentials do
 7- logout user B then Register as musician/orchestra
 
 8- try registering user A as orchestra/musician
+
+9- try forget password method
+
+#You may run into this error messages
+
+1- TokenMismatchException
+
+   simulate login.blade line 11 
+     <input type="hidden" name="_token" value="{{ csrf_token() }}">
+
+2- Swift_TransportException
+
+   override PasswordController.php, Add
+    protected function resetEmailBuilder()
+       {
+           return function (Message $message) {
+               $message->subject($this->getEmailSubject());
+               $message->from('yourmail@email.com', 'title');
+           };
+       }
+
+
 
 
