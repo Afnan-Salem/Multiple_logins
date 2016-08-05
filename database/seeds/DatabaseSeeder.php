@@ -12,5 +12,13 @@ class DatabaseSeeder extends Seeder
     public function run()
     {
         // $this->call(UsersTableSeeder::class);
+        $roles = [
+            ['name' => 'orchestra'],
+            ['name' => 'musician'],
+            ['name' => 'member']
+        ];
+        foreach($roles as $role){
+            \App\Role::create($role);
+        }
     }
 }
